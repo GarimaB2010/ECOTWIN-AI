@@ -88,10 +88,33 @@ Mobile app for daily tracking
 Expanded environmental simulations
 AI-powered sustainability planning for individuals and communities
 
-License
-MIT License © 2026 EcoTwin AI Team
+# EcoTwin AI
 
-Contact
+EcoTwin AI helps users track and reduce their carbon footprint using AI.
 
-Email: <YOUR_EMAIL>
-GitHub: <GITHUB_LINK>
+## Features
+
+- **AI Receipt Scanner**: Snap a photo and let GPT-4 Vision extract your purchases.
+- **Carbon Impact Dashboard**: Visualize your footprint across categories and trends.
+- **AI Sustainability Coach**: Personalized daily action plans to reach your climate goals.
+- **Multi-Agent Pipeline**: Powered by **Railtracks** for modular, agentic AI workflows.
+
+## Built with
+
+- **React & Tailwind CSS**: Modern, responsive frontend.
+- **Supabase Edge Functions**: Scalable serverless backend using Deno.
+- **OpenAI (GPT-4o & GPT-4 Vision)**: State-of-the-art AI analysis.
+- **Recharts**: Data-driven visualizations.
+- **Railtracks**: Agentic AI pipelines for complex data processing.
+
+## AI Workflow (Railtracks)
+
+Our `eco_pipeline` modularizes the sustainability analysis:
+1. **ReceiptScanner**: Extracts structured item data from raw images.
+2. **CarbonEstimator**: Calculates CO2 equivalents for each item.
+3. **RecommendationAgent**: Generates hyper-personalized lifestyle swaps.
+
+---
+⚡ *Built for the Future.*
+
+
