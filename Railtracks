@@ -1,0 +1,107 @@
+export interface RailtracksNode {
+  run(data: any): Promise<any>;
+}
+
+export interface LLMProvider {
+  generateJSON(prompt: string, systemPrompt?: string): Promise<any>;
+  generateText(prompt: string, systemPrompt?: string): Promise<string>;
+  analyzeImage(imageData: string, prompt: string, systemPrompt?: string): Promise<any>;
+}
+
+export class Pipeline {
+  constructor(private nodes: RailtracksNode[]) {}
+
+  async run(initialData: any): Promise<any> {
+    let currentData = initialData;
+    for (const node of this.nodes) {
+      currentData = await node.run(currentData);
+    }
+    return currentData;
+  }
+}
+
+// --- Specific Agents for EcoTwin AI ---
+
+export class ReceiptScanner implements RailtracksNode {
+  constructor(private llm: LLMProvider) {}
+
+  async run(imageData: string): Promise<any> {
+    const data = await this.llm.analyzeImage(
+      imageData,
+      "Analyze this receipt image and return a JSON list of items with their names, prices, and categories (food, transportation, shopping, or other).",
+      "You are a receipt scanning specialist. Extract items, prices, and categories."
+    );
+    
+    return {
+      items: data.items || [],
+      merchant: data.merchant || "Unknown Merchant",
+      date: data.date || new Date().toISOString()
+    };
+  }
+}
+
+export class CarbonEstimator implements RailtracksNode {
+  async run(data: any): Promise<any> {
+    const emissionsMap: Record<string, number> = {
+      "beef": 27.0, "chicken": 6.9, "vegetables": 2.0, "milk": 3.2,
+      "cheese": 13.5, "bread": 1.6, "gasoline": 2.31, "electronics": 50.0,
+      "clothing": 15.0, "plastic": 6.0
+    };
+
+    const itemsWithCO2 = (data.items || []).map((item: any) => {
+      const name = (item.name || "").toLowerCase();
+      let factor = 1.0;
+      for (const [key, val] of Object.entries(emissionsMap)) {
+        if (name.includes(key)) { factor = val; break; }
+      }
+      if (item.category === 'food' && factor === 1.0) factor = 2.5;
+      if (item.category === 'shopping' && factor === 1.0) factor = 10.0;
+      if (item.category === 'transportation' && factor === 1.0) factor = 15.0;
+
+      return { ...item, co2: (item.price || 5) * factor / 10 };
+    });
+
+    const breakdown = itemsWithCO2.reduce((acc: any, item: any) => {
+      const cat = item.category || 'other';
+      acc[cat] = (acc[cat] || 0) + item.co2;
+      return acc;
+    }, { food: 0, transportation: 0, shopping: 0, other: 0 });
+
+    return { ...data, items: itemsWithCO2, breakdown };
+  }
+}
+
+export class RecommendationAgent implements RailtracksNode {
+  constructor(private llm: LLMProvider) {}
+
+  async run(data: any): Promise<any> {
+    const prompt = `Based on these receipt items and their carbon impact, suggest 3 specific swaps or lifestyle adjustments:
+    Items: ${JSON.stringify(data.items)}
+    Breakdown: ${JSON.stringify(data.breakdown)}`;
+
+    const result = await this.llm.generateJSON(prompt, "You are a sustainability advisor. Provide 3 specific recommendations.");
+    const recommendations = result.recommendations || [];
+
+    return {
+      ...data,
+      recommendations,
+      breakdown: {
+        ...data.breakdown,
+        packaging: ((data.items || []).length * 0.2),
+        transportation: (data.breakdown?.transportation || 0) + 1.2
+      }
+    };
+  }
+}
+
+export class SustainabilityReporter implements RailtracksNode {
+  constructor(private llm: LLMProvider) {}
+
+  async run(data: any): Promise<any> {
+    const prompt = `Write a short, engaging summary of this footprint data. Include one 'wow' fact and one encouraging tip.
+    Data: ${JSON.stringify(data)}`;
+
+    const report = await this.llm.generateText(prompt, "You are a master communicator in environmental science. Keep summaries under 100 words.");
+    return { ...data, report };
+  }
+}
